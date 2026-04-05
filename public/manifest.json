@@ -1,0 +1,20 @@
+{
+  "name": "Far Away Manager",
+  "short_name": "FarAway",
+  "start_url": "/clientes",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/faraway.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/faraway.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
