@@ -21,24 +21,22 @@ export default function Home() {
     }
 
     setCargando(true);
-const prueba = await supabase
-  .from("usuarios")
-  .select("*");
 
     const valor = usuarioInput.trim().toLowerCase();
 
-let query = supabase
-  .from("usuarios")
-  .select("nombre,email,rol,activo,password")
-  .eq("activo", true);
+    let query = supabase
+      .from("usuarios")
+      .select("nombre,email,rol,activo,password")
+      .eq("activo", true);
 
-if (valor.includes("@")) {
-  query = query.eq("email", valor);
-} else {
-  query = query.ilike("nombre", usuarioInput.trim());
-}
+    if (valor.includes("@")) {
+      query = query.eq("email", valor);
+    } else {
+      query = query.ilike("nombre", usuarioInput.trim());
+    }
 
-const { data, error } = await query.limit(1);
+    const { data, error } = await query.limit(1);
+
     setCargando(false);
 
     if (error) {
@@ -74,26 +72,26 @@ const { data, error } = await query.limit(1);
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-blue-950">
-      <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md text-center">
+    <main className="flex min-h-screen items-center justify-center bg-blue-950 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-10 text-center shadow-xl">
         <img
-          src="/faraway.png"
-          alt="Far Away"
-          className="mx-auto w-72 mb-8 drop-shadow-lg"
+          src="/faraway-premium.png"
+          alt="Viajes Far Away Premium Mobility"
+          className="mx-auto mb-8 w-72 drop-shadow-lg"
         />
 
-        <h1 className="text-3xl font-bold text-blue-950 mb-2">
+        <h1 className="mb-2 text-3xl font-bold text-blue-950">
           Far Away Manager
         </h1>
 
-        <p className="text-gray-600 mb-6">
+        <p className="mb-6 text-gray-600">
           Acceso interno Premium Mobility
         </p>
 
         <input
           type="text"
           placeholder="Correo o nombre de usuario"
-          className="border p-3 rounded w-full mb-3"
+          className="mb-3 w-full rounded border p-3"
           value={usuarioInput}
           onChange={(e) => setUsuarioInput(e.target.value)}
         />
@@ -101,7 +99,7 @@ const { data, error } = await query.limit(1);
         <input
           type="password"
           placeholder="Contraseña"
-          className="border p-3 rounded w-full mb-4"
+          className="mb-4 w-full rounded border p-3"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => {
@@ -110,9 +108,10 @@ const { data, error } = await query.limit(1);
         />
 
         <button
+          type="button"
           onClick={login}
           disabled={cargando}
-          className="bg-blue-950 text-white px-4 py-3 rounded w-full"
+          className="w-full rounded bg-blue-950 px-4 py-3 text-white transition hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {cargando ? "Ingresando..." : "Iniciar sesión"}
         </button>
