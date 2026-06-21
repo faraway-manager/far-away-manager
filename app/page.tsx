@@ -74,12 +74,13 @@ export default function Home() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-blue-950 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-10 text-center shadow-xl">
-        <img
-          src="/faraway-premium.png"
-          alt="Viajes Far Away Premium Mobility"
-          className="mx-auto mb-8 w-72 drop-shadow-lg"
-        />
-
+<div className="mx-auto mb-8 flex w-fit items-center justify-center rounded-2xl bg-blue-950 px-6 py-5 shadow-lg">
+  <img
+    src="/faraway-premium.png"
+    alt="Viajes Far Away Premium Mobility"
+    className="w-72 object-contain"
+  />
+</div>
         <h1 className="mb-2 text-3xl font-bold text-blue-950">
           Far Away Manager
         </h1>
