@@ -16,6 +16,23 @@ type Cliente = {
   email: string | null;
 };
 
+type ServicioDetalle = {
+  id: string;
+  tipoServicio: string;
+  subtipoServicio: string;
+  origen: string;
+  destino: string;
+  fecha: string;
+  numeroPasajeros: number;
+  nombresPasajeros: string;
+  tarifaReal: number;
+  tarifaBase: number;
+  iva: number;
+  otrosCargos: number;
+  totalCliente: number;
+  utilidad: number;
+};
+
 type ServicioTransporte = {
   id: string;
   clienteId: string;
@@ -45,6 +62,15 @@ type ServicioTransporte = {
   saldoPendiente: number;
   observaciones: string;
   estado: string;
+  serviciosDetalle: ServicioDetalle[];
+};
+
+const crearIdTemporal = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return String(Date.now() + Math.random());
 };
 
 export default function TransportePage() {
@@ -52,6 +78,7 @@ export default function TransportePage() {
 
   const [clienteId, setClienteId] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
+  const [clienteWhatsapp, setClienteWhatsapp] = useState("");
   const [tipoCliente, setTipoCliente] = useState("");
 
   const [operador, setOperador] = useState("");
@@ -73,6 +100,9 @@ export default function TransportePage() {
   const [iva, setIva] = useState("");
   const [otrosCargos, setOtrosCargos] = useState("");
 
+  const [serviciosCotizacion, setServiciosCotizacion] = useState<ServicioDetalle[]>([]);
+  const [servicioEditandoId, setServicioEditandoId] = useState<string | null>(null);
+
   const [agente, setAgente] = useState("");
   const [porcentajeComision, setPorcentajeComision] = useState(0);
 
@@ -83,19 +113,54 @@ export default function TransportePage() {
   const [servicios, setServicios] = useState<ServicioTransporte[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
 
-  // Todos los importes son de captura manual, igual que en Cotizador.
   const tarifaRealNumero = Number(tarifaReal || 0);
   const tarifaBaseNumero = Number(tarifaBase || 0);
   const ivaNumero = Number(iva || 0);
   const otrosCargosNumero = Number(otrosCargos || 0);
 
-  const totalCliente = tarifaBaseNumero + ivaNumero + otrosCargosNumero;
-  const utilidad = tarifaBaseNumero - tarifaRealNumero;
-  const comision =
-    utilidad * (Number(porcentajeComision || 0) / 100);
+  const totalServicioActual = tarifaBaseNumero + ivaNumero + otrosCargosNumero;
+  const utilidadServicioActual = tarifaBaseNumero - tarifaRealNumero;
+
+  const totalClienteCotizacion = serviciosCotizacion.reduce(
+    (sum, servicio) => sum + servicio.totalCliente,
+    0,
+  );
+
+  const tarifaRealCotizacion = serviciosCotizacion.reduce(
+    (sum, servicio) => sum + servicio.tarifaReal,
+    0,
+  );
+
+  const tarifaBaseCotizacion = serviciosCotizacion.reduce(
+    (sum, servicio) => sum + servicio.tarifaBase,
+    0,
+  );
+
+  const ivaCotizacion = serviciosCotizacion.reduce(
+    (sum, servicio) => sum + servicio.iva,
+    0,
+  );
+
+  const otrosCargosCotizacion = serviciosCotizacion.reduce(
+    (sum, servicio) => sum + servicio.otrosCargos,
+    0,
+  );
+
+  const utilidadCotizacion = serviciosCotizacion.reduce(
+    (sum, servicio) => sum + servicio.utilidad,
+    0,
+  );
+
+  const numeroPasajerosCotizacion = serviciosCotizacion.reduce(
+    (sum, servicio) => sum + Number(servicio.numeroPasajeros || 0),
+    0,
+  );
+
+  const comisionCotizacion =
+    utilidadCotizacion * (Number(porcentajeComision || 0) / 100);
 
   const anticipoNumero = Number(anticipo || 0);
-  const saldoPendiente = totalCliente - anticipoNumero;
+  const saldoPendienteCotizacion = totalClienteCotizacion - anticipoNumero;
 
   const formatoMoneda = (valor: number) => {
     return (
@@ -105,6 +170,17 @@ export default function TransportePage() {
         maximumFractionDigits: 2,
       })
     );
+  };
+
+  const textoServiciosResumen = (detalles: ServicioDetalle[]) => {
+    if (!detalles.length) return "Sin servicios";
+
+    return detalles
+      .map(
+        (servicio, index) =>
+          `${index + 1}. ${servicio.tipoServicio} ${servicio.origen} a ${servicio.destino}`,
+      )
+      .join(" | ");
   };
 
   useEffect(() => {
@@ -126,6 +202,46 @@ export default function TransportePage() {
     }
 
     setClientes((data || []) as Cliente[]);
+  };
+
+  const construirDetalleDesdeRegistro = (item: any): ServicioDetalle[] => {
+    if (Array.isArray(item.servicios_detalle) && item.servicios_detalle.length > 0) {
+      return item.servicios_detalle.map((servicio: any) => ({
+        id: servicio.id || crearIdTemporal(),
+        tipoServicio: servicio.tipoServicio || servicio.tipo_servicio || "",
+        subtipoServicio: servicio.subtipoServicio || servicio.subtipo_servicio || "",
+        origen: servicio.origen || "",
+        destino: servicio.destino || "",
+        fecha: servicio.fecha || "",
+        numeroPasajeros: Number(servicio.numeroPasajeros || servicio.numero_pasajeros || 0),
+        nombresPasajeros: servicio.nombresPasajeros || servicio.nombres_pasajeros || "",
+        tarifaReal: Number(servicio.tarifaReal || servicio.tarifa_real || 0),
+        tarifaBase: Number(servicio.tarifaBase || servicio.tarifa_base || 0),
+        iva: Number(servicio.iva || 0),
+        otrosCargos: Number(servicio.otrosCargos || servicio.otros_cargos || 0),
+        totalCliente: Number(servicio.totalCliente || servicio.total_cliente || 0),
+        utilidad: Number(servicio.utilidad || 0),
+      }));
+    }
+
+    return [
+      {
+        id: crearIdTemporal(),
+        tipoServicio: item.servicio || "",
+        subtipoServicio: item.subtipo || "",
+        origen: item.origen || "",
+        destino: item.destino || "",
+        fecha: item.fecha_servicio || "",
+        numeroPasajeros: Number(item.pasajeros || 0),
+        nombresPasajeros: item.nombres_pasajeros || "",
+        tarifaReal: Number(item.tarifa_neta || 0),
+        tarifaBase: Number(item.tarifa_publica || 0),
+        iva: Number(item.iva_publica || 0),
+        otrosCargos: Number(item.iva_neta || 0),
+        totalCliente: Number(item.total_publico || 0),
+        utilidad: Number(item.utilidad || 0),
+      },
+    ];
   };
 
   const cargarServicios = async () => {
@@ -155,6 +271,8 @@ export default function TransportePage() {
           item.clientes?.nombre_cliente || item.clientes?.empresa || "";
 
         const tipoCliente = item.clientes?.tipo_cliente || "";
+        const detalles = construirDetalleDesdeRegistro(item);
+        const primerServicio = detalles[0];
 
         return {
           id: item.id,
@@ -165,17 +283,16 @@ export default function TransportePage() {
           operador: item.operador || "",
           telefonoOperador: item.telefono_operador || "",
           unidad: item.unidad || "",
-          tipoServicio: item.servicio || "",
-          subtipoServicio: item.subtipo || "",
-          origen: item.origen || "",
-          destino: item.destino || "",
-          fecha: item.fecha_servicio || "",
+          tipoServicio: item.servicio || primerServicio?.tipoServicio || "",
+          subtipoServicio: item.subtipo || primerServicio?.subtipoServicio || "",
+          origen: item.origen || primerServicio?.origen || "",
+          destino: item.destino || primerServicio?.destino || "",
+          fecha: item.fecha_servicio || primerServicio?.fecha || "",
           numeroPasajeros: Number(item.pasajeros || 0),
           nombresPasajeros: item.nombres_pasajeros || "",
           tarifaReal: Number(item.tarifa_neta || 0),
           tarifaBase: Number(item.tarifa_publica || 0),
           iva: Number(item.iva_publica || 0),
-          // Se reutiliza iva_neta para conservar Otros Cargos sin modificar la tabla actual.
           otrosCargos: Number(item.iva_neta || 0),
           totalCliente: Number(item.total_publico || 0),
           agente: item.agente || "",
@@ -186,6 +303,7 @@ export default function TransportePage() {
           saldoPendiente: Number(item.saldo_pendiente || 0),
           observaciones: item.observaciones || "",
           estado: item.estado || "Cotizado",
+          serviciosDetalle: detalles,
         };
       },
     );
@@ -200,21 +318,17 @@ export default function TransportePage() {
 
     if (!cliente) {
       setClienteNombre("");
+      setClienteWhatsapp("");
       setTipoCliente("");
       return;
     }
 
     setClienteNombre(cliente.nombre_cliente || cliente.empresa || "");
+    setClienteWhatsapp(cliente.whatsapp || "");
     setTipoCliente(cliente.tipo_cliente || "");
   };
 
-  const limpiarFormulario = () => {
-    setClienteId("");
-    setClienteNombre("");
-    setTipoCliente("");
-    setOperador("");
-    setTelefonoOperador("");
-    setUnidad("");
+  const limpiarCamposServicio = () => {
     setTipoServicio("Traslado");
     setSubtipoServicio("Con chofer");
     setOrigen("");
@@ -226,6 +340,19 @@ export default function TransportePage() {
     setTarifaBase("");
     setIva("");
     setOtrosCargos("");
+    setServicioEditandoId(null);
+  };
+
+  const limpiarFormulario = () => {
+    setClienteId("");
+    setClienteNombre("");
+    setClienteWhatsapp("");
+    setTipoCliente("");
+    setOperador("");
+    setTelefonoOperador("");
+    setUnidad("");
+    limpiarCamposServicio();
+    setServiciosCotizacion([]);
     setAgente("");
     setPorcentajeComision(0);
     setAnticipo("");
@@ -234,46 +361,127 @@ export default function TransportePage() {
     setEditId(null);
   };
 
-  const guardarServicio = async () => {
-    if (
-      !clienteId ||
-      !operador ||
-      !telefonoOperador ||
-      !origen ||
-      !destino ||
-      !fecha
-    ) {
-      alert("Completa cliente, operador, teléfono, origen, destino y fecha.");
+  const agregarServicioCotizacion = () => {
+    if (!origen || !destino || !fecha) {
+      alert("Captura origen, destino y fecha del servicio.");
       return;
     }
+
+    const detalle: ServicioDetalle = {
+      id: servicioEditandoId || crearIdTemporal(),
+      tipoServicio,
+      subtipoServicio,
+      origen: origen.trim(),
+      destino: destino.trim(),
+      fecha,
+      numeroPasajeros: Number(numeroPasajeros || 1),
+      nombresPasajeros: nombresPasajeros.trim(),
+      tarifaReal: tarifaRealNumero,
+      tarifaBase: tarifaBaseNumero,
+      iva: ivaNumero,
+      otrosCargos: otrosCargosNumero,
+      totalCliente: totalServicioActual,
+      utilidad: utilidadServicioActual,
+    };
+
+    if (servicioEditandoId) {
+      setServiciosCotizacion((actuales) =>
+        actuales.map((servicio) =>
+          servicio.id === servicioEditandoId ? detalle : servicio,
+        ),
+      );
+    } else {
+      setServiciosCotizacion((actuales) => [...actuales, detalle]);
+    }
+
+    limpiarCamposServicio();
+  };
+
+  const editarServicioCotizacion = (servicio: ServicioDetalle) => {
+    setServicioEditandoId(servicio.id);
+    setTipoServicio(servicio.tipoServicio || "Traslado");
+    setSubtipoServicio(servicio.subtipoServicio || "Con chofer");
+    setOrigen(servicio.origen || "");
+    setDestino(servicio.destino || "");
+    setFecha(servicio.fecha || "");
+    setNumeroPasajeros(Number(servicio.numeroPasajeros || 1));
+    setNombresPasajeros(servicio.nombresPasajeros || "");
+    setTarifaReal(String(servicio.tarifaReal || ""));
+    setTarifaBase(String(servicio.tarifaBase || ""));
+    setIva(String(servicio.iva || ""));
+    setOtrosCargos(String(servicio.otrosCargos || ""));
+  };
+
+  const eliminarServicioCotizacion = (id: string) => {
+    const confirmar = confirm("¿Eliminar este renglón de servicio?");
+    if (!confirmar) return;
+
+    setServiciosCotizacion((actuales) =>
+      actuales.filter((servicio) => servicio.id !== id),
+    );
+
+    if (servicioEditandoId === id) {
+      limpiarCamposServicio();
+    }
+  };
+
+  const guardarServicio = async () => {
+    if (!clienteId || !operador || !telefonoOperador) {
+      alert("Completa cliente, operador y teléfono del operador.");
+      return;
+    }
+
+    if (serviciosCotizacion.length === 0) {
+      alert("Agrega por lo menos un servicio a la cotización.");
+      return;
+    }
+
+    const primerServicio = serviciosCotizacion[0];
 
     const servicioData = {
       cliente_id: clienteId,
       operador,
       telefono_operador: telefonoOperador,
       unidad,
-      servicio: tipoServicio,
-      subtipo: subtipoServicio,
-      origen,
-      destino,
-      fecha_servicio: fecha,
-      pasajeros: Number(numeroPasajeros || 1),
-      nombres_pasajeros: nombresPasajeros,
-      tarifa_neta: tarifaRealNumero,
-      // Campo reutilizado para Otros Cargos, evitando requerir una migración inmediata.
-      iva_neta: otrosCargosNumero,
-      total_neto: tarifaRealNumero + otrosCargosNumero,
-      tarifa_publica: tarifaBaseNumero,
-      iva_publica: ivaNumero,
-      total_publico: totalCliente,
+      servicio: serviciosCotizacion
+        .map((servicio) => servicio.tipoServicio)
+        .join(", "),
+      subtipo: serviciosCotizacion
+        .map((servicio) => servicio.subtipoServicio)
+        .join(", "),
+      origen:
+        serviciosCotizacion.length === 1
+          ? primerServicio.origen
+          : serviciosCotizacion.map((servicio) => servicio.origen).join(" | "),
+      destino:
+        serviciosCotizacion.length === 1
+          ? primerServicio.destino
+          : serviciosCotizacion.map((servicio) => servicio.destino).join(" | "),
+      fecha_servicio: primerServicio.fecha,
+      pasajeros: numeroPasajerosCotizacion,
+      nombres_pasajeros: serviciosCotizacion
+        .map((servicio, index) =>
+          servicio.nombresPasajeros
+            ? `${index + 1}. ${servicio.nombresPasajeros}`
+            : "",
+        )
+        .filter(Boolean)
+        .join(" | "),
+      tarifa_neta: tarifaRealCotizacion,
+      iva_neta: otrosCargosCotizacion,
+      total_neto: tarifaRealCotizacion + otrosCargosCotizacion,
+      tarifa_publica: tarifaBaseCotizacion,
+      iva_publica: ivaCotizacion,
+      total_publico: totalClienteCotizacion,
       agente,
       porcentaje_comision: Number(porcentajeComision || 0),
-      utilidad,
-      comision,
+      utilidad: utilidadCotizacion,
+      comision: comisionCotizacion,
       anticipo: anticipoNumero,
-      saldo_pendiente: saldoPendiente,
+      saldo_pendiente: saldoPendienteCotizacion,
       observaciones,
       estado,
+      servicios_detalle: serviciosCotizacion,
     };
 
     if (editId) {
@@ -303,32 +511,23 @@ export default function TransportePage() {
     setEditId(servicio.id);
     setClienteId(servicio.clienteId || "");
     setClienteNombre(servicio.clienteNombre || "");
+    setClienteWhatsapp(servicio.clienteWhatsapp || "");
     setTipoCliente(servicio.tipoCliente || "");
     setOperador(servicio.operador || "");
     setTelefonoOperador(servicio.telefonoOperador || "");
     setUnidad(servicio.unidad || "");
-    setTipoServicio(servicio.tipoServicio || "Traslado");
-    setSubtipoServicio(servicio.subtipoServicio || "Con chofer");
-    setOrigen(servicio.origen || "");
-    setDestino(servicio.destino || "");
-    setFecha(servicio.fecha || "");
-    setNumeroPasajeros(servicio.numeroPasajeros || 1);
-    setNombresPasajeros(servicio.nombresPasajeros || "");
-    setTarifaReal(String(servicio.tarifaReal || ""));
-    setTarifaBase(String(servicio.tarifaBase || ""));
-    setIva(String(servicio.iva || ""));
-    setOtrosCargos(String(servicio.otrosCargos || ""));
+    setServiciosCotizacion(servicio.serviciosDetalle || []);
     setAgente(servicio.agente || "");
     setPorcentajeComision(Number(servicio.porcentajeComision || 0));
     setAnticipo(String(servicio.anticipo || ""));
     setObservaciones(servicio.observaciones || "");
     setEstado(servicio.estado || "Cotizado");
-
+    limpiarCamposServicio();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const eliminarServicio = async (id: string) => {
-    const confirmar = confirm("¿Eliminar este servicio?");
+    const confirmar = confirm("¿Eliminar esta cotización de Mobility?");
     if (!confirmar) return;
 
     const { error } = await supabase.from("mobility").delete().eq("id", id);
@@ -375,7 +574,6 @@ export default function TransportePage() {
 
         contextoOriginal.drawImage(img, 0, 0);
 
-        // Recorta automáticamente el espacio transparente que rodea al logo.
         const pixeles = contextoOriginal.getImageData(
           0,
           0,
@@ -451,7 +649,7 @@ export default function TransportePage() {
       try {
         return await cargarLogoComoPng(`${ruta}?v=2`);
       } catch {
-        // Intenta con la siguiente ruta sin provocar la pantalla de error de Next.js.
+        // Intenta con la siguiente ruta.
       }
     }
 
@@ -459,14 +657,12 @@ export default function TransportePage() {
   };
 
   const pintarEncabezado = async (doc: jsPDF) => {
-    // Placa azul oscuro para que el logotipo blanco conserve contraste.
     doc.setFillColor(23, 37, 84);
     doc.roundedRect(14, 8, 46, 34, 2, 2, "F");
 
     const logo = await cargarPrimerLogoDisponible();
 
     if (logo) {
-
       const anchoMaximo = 40;
       const altoMaximo = 27;
       let anchoLogo = anchoMaximo;
@@ -507,6 +703,26 @@ export default function TransportePage() {
   const generarPDF = async (servicio: ServicioTransporte) => {
     const doc = new jsPDF();
     const fechaHoy = new Date().toLocaleDateString("es-MX");
+    const detalles = servicio.serviciosDetalle?.length
+      ? servicio.serviciosDetalle
+      : [
+          {
+            id: crearIdTemporal(),
+            tipoServicio: servicio.tipoServicio,
+            subtipoServicio: servicio.subtipoServicio,
+            origen: servicio.origen,
+            destino: servicio.destino,
+            fecha: servicio.fecha,
+            numeroPasajeros: servicio.numeroPasajeros,
+            nombresPasajeros: servicio.nombresPasajeros,
+            tarifaReal: servicio.tarifaReal,
+            tarifaBase: servicio.tarifaBase,
+            iva: servicio.iva,
+            otrosCargos: servicio.otrosCargos,
+            totalCliente: servicio.totalCliente,
+            utilidad: servicio.utilidad,
+          },
+        ];
 
     await pintarEncabezado(doc);
 
@@ -517,21 +733,23 @@ export default function TransportePage() {
     doc.text("Fecha de elaboración: " + fechaHoy, 14, 64);
     doc.text("Cliente: " + (servicio.clienteNombre || "N/A"), 14, 70);
     doc.text("Tipo de cliente: " + (servicio.tipoCliente || "N/A"), 14, 76);
-    doc.text("Fecha de servicio: " + (servicio.fecha || "N/A"), 14, 82);
-    doc.text("Agente: " + (servicio.agente || "N/A"), 14, 88);
+    doc.text("Agente: " + (servicio.agente || "N/A"), 14, 82);
+    doc.text("Operador: " + (servicio.operador || "N/A"), 14, 88);
+    doc.text("Teléfono operador: " + (servicio.telefonoOperador || "N/A"), 14, 94);
+    doc.text("Unidad: " + (servicio.unidad || "N/A"), 14, 100);
 
     autoTable(doc, {
-      startY: 98,
-      head: [["Concepto", "Detalle"]],
-      body: [
-        ["Servicio", `${servicio.tipoServicio} / ${servicio.subtipoServicio}`],
-        ["Ruta", `Origen: ${servicio.origen} | Destino: ${servicio.destino}`],
-        ["Operador", servicio.operador || "N/A"],
-        ["Teléfono operador", servicio.telefonoOperador || "N/A"],
-        ["Unidad", servicio.unidad || "N/A"],
-        ["Pasajeros", String(servicio.numeroPasajeros || 0)],
-        ["Nombre de pasajeros", servicio.nombresPasajeros || "N/A"],
-      ],
+      startY: 108,
+      head: [["#", "Servicio", "Ruta", "Fecha", "Pax", "Pasajeros", "Total"]],
+      body: detalles.map((detalle, index) => [
+        String(index + 1),
+        `${detalle.tipoServicio} / ${detalle.subtipoServicio}`,
+        `${detalle.origen} a ${detalle.destino}`,
+        detalle.fecha || "N/A",
+        String(detalle.numeroPasajeros || 0),
+        detalle.nombresPasajeros || "N/A",
+        formatoMoneda(detalle.totalCliente),
+      ]),
       headStyles: { fillColor: [23, 37, 84], font: "helvetica", fontStyle: "bold" },
       bodyStyles: { font: "helvetica", fontStyle: "normal", fontSize: 8.5 },
       styles: { font: "helvetica", fontStyle: "normal" },
@@ -596,7 +814,7 @@ export default function TransportePage() {
       : `52${telefono}`;
 
     const mensaje = encodeURIComponent(
-      `Hola ${servicio.clienteNombre || ""}, te compartimos información de tu servicio ${servicio.tipoServicio} de ${servicio.origen} a ${servicio.destino}, programado para el ${servicio.fecha || "día indicado"}. Total: ${formatoMoneda(servicio.totalCliente)}.`,
+      `Hola ${servicio.clienteNombre || ""}, te compartimos tu cotización de Mobility con ${servicio.serviciosDetalle.length || 1} servicio(s): ${textoServiciosResumen(servicio.serviciosDetalle)}. Total: ${formatoMoneda(servicio.totalCliente)}.`,
     );
 
     window.open(
@@ -606,7 +824,11 @@ export default function TransportePage() {
     );
   };
 
-  const totalServicios = servicios.length;
+  const totalServicios = servicios.reduce(
+    (sum, servicio) => sum + Math.max(servicio.serviciosDetalle.length, 1),
+    0,
+  );
+  const totalCotizaciones = servicios.length;
   const totalVendido = servicios.reduce(
     (sum, servicio) => sum + servicio.totalCliente,
     0,
@@ -627,14 +849,13 @@ export default function TransportePage() {
       </h1>
 
       <p className="text-gray-600 mb-6">
-        Control de servicios terrestres, operadores, rutas, costos, utilidad y
-        comisión.
+        Control de cotizaciones terrestres con uno o varios servicios por cliente.
       </p>
 
       <section className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-950 text-white p-4 rounded">
-          <div className="text-sm">Servicios registrados</div>
-          <div className="text-3xl font-bold">{totalServicios}</div>
+          <div className="text-sm">Cotizaciones registradas</div>
+          <div className="text-3xl font-bold">{totalCotizaciones}</div>
         </div>
 
         <div className="bg-green-700 text-white p-4 rounded">
@@ -718,9 +939,11 @@ export default function TransportePage() {
       </section>
 
       <section className="border p-4 mb-6">
-        <h2 className="font-bold mb-3">3. Servicio y ruta</h2>
+        <h2 className="font-bold mb-3">
+          3. Agregar servicios a la cotización
+        </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
           <select
             className="border p-2 rounded"
             value={tipoServicio}
@@ -767,12 +990,8 @@ export default function TransportePage() {
             />
           </label>
         </div>
-      </section>
 
-      <section className="border p-4 mb-6">
-        <h2 className="font-bold mb-3">4. Pasajeros</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
           <input
             type="number"
             className="border p-2 rounded"
@@ -787,12 +1006,8 @@ export default function TransportePage() {
             onChange={(e) => setNombresPasajeros(e.target.value)}
           />
         </div>
-      </section>
 
-      <section className="border p-4 mb-6">
-        <h2 className="font-bold mb-3">5. Costos del servicio</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
           <input
             type="number"
             step="0.01"
@@ -831,16 +1046,93 @@ export default function TransportePage() {
 
           <input
             className="border p-2 rounded bg-gray-100 font-bold"
-            value={`Total: ${formatoMoneda(totalCliente)}`}
+            value={`Total servicio: ${formatoMoneda(totalServicioActual)}`}
             readOnly
           />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={agregarServicioCotizacion}
+            className="bg-blue-950 text-white px-4 py-2 rounded"
+          >
+            {servicioEditandoId
+              ? "Actualizar renglón de servicio"
+              : "Agregar servicio a cotización"}
+          </button>
+
+          {servicioEditandoId && (
+            <button
+              onClick={limpiarCamposServicio}
+              className="bg-gray-600 text-white px-4 py-2 rounded"
+            >
+              Cancelar edición de renglón
+            </button>
+          )}
+        </div>
+
+        <div className="mt-5 overflow-x-auto">
+          <h3 className="font-bold mb-2">Servicios de esta cotización</h3>
+
+          <table className="w-full border text-sm">
+            <thead className="bg-blue-950 text-white">
+              <tr>
+                <th className="p-2 border">Servicio</th>
+                <th className="p-2 border">Ruta</th>
+                <th className="p-2 border">Fecha</th>
+                <th className="p-2 border">Pax</th>
+                <th className="p-2 border">Total</th>
+                <th className="p-2 border">Acción</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {serviciosCotizacion.length === 0 ? (
+                <tr>
+                  <td className="p-3 border text-center text-gray-500" colSpan={6}>
+                    Agrega uno o más servicios para esta cotización.
+                  </td>
+                </tr>
+              ) : (
+                serviciosCotizacion.map((servicio) => (
+                  <tr key={servicio.id}>
+                    <td className="p-2 border">
+                      {servicio.tipoServicio} / {servicio.subtipoServicio}
+                    </td>
+                    <td className="p-2 border">
+                      {servicio.origen} → {servicio.destino}
+                    </td>
+                    <td className="p-2 border">{servicio.fecha || "N/A"}</td>
+                    <td className="p-2 border">{servicio.numeroPasajeros}</td>
+                    <td className="p-2 border">
+                      {formatoMoneda(servicio.totalCliente)}
+                    </td>
+                    <td className="p-2 border">
+                      <button
+                        onClick={() => editarServicioCotizacion(servicio)}
+                        className="bg-yellow-500 text-white px-2 py-1 rounded mr-1"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => eliminarServicioCotizacion(servicio.id)}
+                        className="bg-red-600 text-white px-2 py-1 rounded"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
 
       <section className="border p-4 mb-6">
-        <h2 className="font-bold mb-3">6. Agente y comisión</h2>
+        <h2 className="font-bold mb-3">4. Agente, comisión y totales</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <input
             className="border p-2 rounded"
             placeholder="Agente"
@@ -862,23 +1154,31 @@ export default function TransportePage() {
 
           <input
             className="border p-2 rounded bg-gray-100"
-            value={`Utilidad: ${formatoMoneda(utilidad)}`}
+            value={`Total cotización: ${formatoMoneda(totalClienteCotizacion)}`}
+            readOnly
+          />
+
+          <input
+            className="border p-2 rounded bg-gray-100"
+            value={`Utilidad: ${formatoMoneda(utilidadCotizacion)}`}
             readOnly
           />
 
           <input
             className="border p-2 rounded bg-gray-100 font-bold"
-            value={`Comisión: ${formatoMoneda(comision)}`}
+            value={`Comisión: ${formatoMoneda(comisionCotizacion)}`}
             readOnly
           />
         </div>
       </section>
 
       <section className="border p-4 mb-6">
-        <h2 className="font-bold mb-3">7. Pagos y observaciones</h2>
+        <h2 className="font-bold mb-3">5. Pagos y observaciones</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <input
+            type="number"
+            step="0.01"
             className="border p-2 rounded"
             placeholder="Anticipo"
             value={anticipo}
@@ -887,7 +1187,7 @@ export default function TransportePage() {
 
           <input
             className="border p-2 rounded bg-gray-100 font-bold"
-            value={`Saldo pendiente: ${formatoMoneda(saldoPendiente)}`}
+            value={`Saldo pendiente: ${formatoMoneda(saldoPendienteCotizacion)}`}
             readOnly
           />
 
@@ -915,7 +1215,7 @@ export default function TransportePage() {
         onClick={guardarServicio}
         className="bg-blue-950 text-white px-4 py-2 rounded mb-6"
       >
-        {editId ? "Actualizar servicio" : "Guardar servicio"}
+        {editId ? "Actualizar cotización" : "Guardar cotización"}
       </button>
 
       {editId && (
@@ -928,7 +1228,7 @@ export default function TransportePage() {
       )}
 
       <section className="border p-4 overflow-x-auto">
-        <h2 className="font-bold mb-3">Servicios registrados</h2>
+        <h2 className="font-bold mb-3">Cotizaciones registradas</h2>
 
         <table className="w-full border text-sm">
           <thead className="bg-blue-950 text-white">
@@ -937,8 +1237,8 @@ export default function TransportePage() {
               <th className="p-2 border">Tipo</th>
               <th className="p-2 border">Operador</th>
               <th className="p-2 border">Tel. operador</th>
-              <th className="p-2 border">Servicio</th>
-              <th className="p-2 border">Ruta</th>
+              <th className="p-2 border">Servicios</th>
+              <th className="p-2 border">Rutas</th>
               <th className="p-2 border">Fecha</th>
               <th className="p-2 border">Pax</th>
               <th className="p-2 border">Total</th>
@@ -949,58 +1249,68 @@ export default function TransportePage() {
           </thead>
 
           <tbody>
-            {servicios.map((servicio) => (
-              <tr key={servicio.id}>
-                <td className="p-2 border">{servicio.clienteNombre}</td>
-                <td className="p-2 border">{servicio.tipoCliente}</td>
-                <td className="p-2 border">{servicio.operador}</td>
-                <td className="p-2 border">{servicio.telefonoOperador}</td>
-                <td className="p-2 border">
-                  {servicio.tipoServicio} / {servicio.subtipoServicio}
-                </td>
-                <td className="p-2 border">
-                  {servicio.origen} → {servicio.destino}
-                </td>
-                <td className="p-2 border">{servicio.fecha || "N/A"}</td>
-                <td className="p-2 border">{servicio.numeroPasajeros}</td>
-                <td className="p-2 border">
-                  {formatoMoneda(servicio.totalCliente)}
-                </td>
-                <td className="p-2 border">
-                  {formatoMoneda(servicio.utilidad)}
-                </td>
-                <td className="p-2 border">{servicio.estado}</td>
-                <td className="p-2 border">
-                  <button
-                    onClick={() => editarServicio(servicio)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded mr-1"
-                  >
-                    Editar
-                  </button>
-
-                  <button
-                    onClick={() => generarPDF(servicio)}
-                    className="bg-green-700 text-white px-2 py-1 rounded mr-1"
-                  >
-                    PDF
-                  </button>
-
-                  <button
-                    onClick={() => abrirWhatsApp(servicio)}
-                    className="bg-emerald-600 text-white px-2 py-1 rounded mr-1"
-                  >
-                    WhatsApp
-                  </button>
-
-                  <button
-                    onClick={() => eliminarServicio(servicio.id)}
-                    className="bg-red-600 text-white px-2 py-1 rounded"
-                  >
-                    Eliminar
-                  </button>
+            {servicios.length === 0 ? (
+              <tr>
+                <td className="p-3 border text-center text-gray-500" colSpan={12}>
+                  No hay cotizaciones registradas.
                 </td>
               </tr>
-            ))}
+            ) : (
+              servicios.map((servicio) => (
+                <tr key={servicio.id}>
+                  <td className="p-2 border">{servicio.clienteNombre}</td>
+                  <td className="p-2 border">{servicio.tipoCliente}</td>
+                  <td className="p-2 border">{servicio.operador}</td>
+                  <td className="p-2 border">{servicio.telefonoOperador}</td>
+                  <td className="p-2 border">
+                    {servicio.serviciosDetalle.length} servicio(s)
+                  </td>
+                  <td className="p-2 border">
+                    {servicio.serviciosDetalle
+                      .map((detalle) => `${detalle.origen} → ${detalle.destino}`)
+                      .join(" | ")}
+                  </td>
+                  <td className="p-2 border">{servicio.fecha || "N/A"}</td>
+                  <td className="p-2 border">{servicio.numeroPasajeros}</td>
+                  <td className="p-2 border">
+                    {formatoMoneda(servicio.totalCliente)}
+                  </td>
+                  <td className="p-2 border">
+                    {formatoMoneda(servicio.utilidad)}
+                  </td>
+                  <td className="p-2 border">{servicio.estado}</td>
+                  <td className="p-2 border">
+                    <button
+                      onClick={() => editarServicio(servicio)}
+                      className="bg-yellow-500 text-white px-2 py-1 rounded mr-1"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      onClick={() => generarPDF(servicio)}
+                      className="bg-blue-950 text-white px-2 py-1 rounded mr-1"
+                    >
+                      PDF
+                    </button>
+
+                    <button
+                      onClick={() => abrirWhatsApp(servicio)}
+                      className="bg-green-700 text-white px-2 py-1 rounded mr-1"
+                    >
+                      WhatsApp
+                    </button>
+
+                    <button
+                      onClick={() => eliminarServicio(servicio.id)}
+                      className="bg-red-600 text-white px-2 py-1 rounded"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </section>

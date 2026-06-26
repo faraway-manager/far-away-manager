@@ -92,7 +92,12 @@ export default function AppShell({
         >
           Mobility
         </Link>
-
+        <Link
+          href="/flotilla"
+          className="transition hover:text-blue-200"
+        >
+          Flotilla
+          </Link>
         {puedeVerReportes && (
           <Link
             href="/reportes"

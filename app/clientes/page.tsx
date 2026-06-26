@@ -125,10 +125,7 @@ export default function ClientesPage() {
         tipoCliente === "empresarial" || tipoCliente === "vip"
           ? empresa.trim() || null
           : null,
-      contacto:
-        tipoCliente === "empresarial" || tipoCliente === "vip"
-          ? contacto.trim() || null
-          : null,
+      contacto: contacto.trim() || null,
       telefono: telefono.trim() || null,
       whatsapp: whatsapp.trim() || null,
       email: email.trim() || null,
@@ -272,7 +269,12 @@ export default function ClientesPage() {
               onChange={(e) => setEmpresa(e.target.value)}
             />
           )}
-
+            <input
+              placeholder="Contacto"
+              className="border p-2"
+              value={contacto}
+              onChange={(e) => setContacto(e.target.value)}
+            />
           {(tipoCliente === "empresarial" || tipoCliente === "vip") && (
             <input
               placeholder="Nombre del contacto"

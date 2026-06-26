@@ -49,6 +49,7 @@ type Cotizacion = {
   cliente: string;
   destino: string;
   nombrePax: string;
+  fechaSolicitud: string;
   fechaSalida: string;
   fechaRegreso: string;
   descripcionViaje: string;
@@ -77,6 +78,7 @@ export default function Cotizador() {
   const [cliente, setCliente] = useState("");
   const [destino, setDestino] = useState("");
   const [nombrePax, setNombrePax] = useState("");
+  const [fechaSolicitud, setFechaSolicitud] = useState("");
   const [fechaSalida, setFechaSalida] = useState("");
   const [fechaRegreso, setFechaRegreso] = useState("");
   const [descripcionViaje, setDescripcionViaje] = useState("");
@@ -295,6 +297,7 @@ export default function Cotizador() {
           "Sin cliente",
         destino: meta?.destino || item.clientes?.destino || "",
         nombrePax: meta?.nombrePax || item.clientes?.nombre_pax || "",
+        fechaSolicitud: meta?.fechaSolicitud || item.fecha_solicitud || "",
         fechaSalida: meta?.fechaSalida || item.clientes?.fecha_salida || "",
         fechaRegreso: meta?.fechaRegreso || item.clientes?.fecha_llegada || "",
         descripcionViaje: item.descripcion_viaje || "",
@@ -432,6 +435,7 @@ export default function Cotizador() {
     setCliente("");
     setDestino("");
     setNombrePax("");
+    setFechaSolicitud("");
     setFechaSalida("");
     setFechaRegreso("");
     setDescripcionViaje("");
@@ -481,6 +485,7 @@ export default function Cotizador() {
       tipoCliente,
       destino,
       nombrePax,
+      fechaSolicitud,
       fechaSalida,
       fechaRegreso,
       agente,
@@ -490,6 +495,7 @@ export default function Cotizador() {
 
     const cotizacionData = {
       cliente_id: clienteId,
+      fecha_solicitud: fechaSolicitud || null,
       tipo_servicio: servicios.map((servicio) => servicio.tipo).join(", "),
       descripcion_viaje: descripcionViaje,
       numero_personas: Number(numeroPersonas || 0),
@@ -552,6 +558,7 @@ export default function Cotizador() {
     setCliente(cotizacion.cliente);
     setDestino(cotizacion.destino);
     setNombrePax(cotizacion.nombrePax);
+    setFechaSolicitud(cotizacion.fechaSolicitud || "");
     setFechaSalida(cotizacion.fechaSalida);
     setFechaRegreso(cotizacion.fechaRegreso);
     setDescripcionViaje(cotizacion.descripcionViaje);
@@ -989,7 +996,15 @@ export default function Cotizador() {
             value={destino}
             onChange={(e) => setDestino(e.target.value)}
           />
-
+         <label className="border p-2 font-semibold">
+           🗓️ Fecha elaboración / solicitud:
+          <input
+            type="date"
+            className="ml-2 outline-none"
+            value={fechaSolicitud}
+            onChange={(e) => setFechaSolicitud(e.target.value)}
+          />
+          </label>
           <label className="border p-2 font-semibold">
             📅 Salida:
             <input
