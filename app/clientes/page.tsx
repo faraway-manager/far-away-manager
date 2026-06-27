@@ -42,17 +42,23 @@ export default function ClientesPage() {
   }, []);
 
   const cargarClientes = async () => {
-    const { data, error } = await supabase
-      .from("clientes")
-      .select("*")
-      .order("created_at", { ascending: false });
+const { data, error } = await supabase
+  .from("clientes")
+  .select("*");
 
-    if (error) {
-      alert("Error al cargar clientes: " + error.message);
-      return;
-    }
+if (error) {
+  console.error("Error al cargar clientes:", error);
+  return;
+}
 
-    setClientes(data || []);
+const clientesOrdenados = (data || []).sort((a, b) => {
+  const nombreA = (a.nombre_cliente || a.empresa || "").toLowerCase();
+  const nombreB = (b.nombre_cliente || b.empresa || "").toLowerCase();
+
+  return nombreA.localeCompare(nombreB, "es");
+});
+
+setClientes(clientesOrdenados);
   };
 
   const limpiarFormulario = () => {
