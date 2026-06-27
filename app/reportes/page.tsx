@@ -76,6 +76,7 @@ type Venta = {
   totalNeto: number;
   utilidad: number;
   comision: number;
+  utilidadNeta: number;
   anticipo: number;
   saldoPendiente: number;
   fecha: string;
@@ -235,6 +236,7 @@ export default function Reportes() {
         totalNeto: numero(item.total_neta),
         utilidad: numero(item.utilidad),
         comision: numero(item.comision),
+        utilidadNeta: numero(item.utilidad) - numero(item.comision),
         anticipo,
         saldoPendiente: totalVendido - anticipo,
         fecha: (item.created_at || "").slice(0, 10),
@@ -264,6 +266,7 @@ export default function Reportes() {
         totalNeto: numero(item.total_neto),
         utilidad: numero(item.utilidad),
         comision: numero(item.comision),
+        utilidadNeta: numero(item.utilidad) - numero(item.comision),
         anticipo: numero(item.anticipo),
         saldoPendiente: numero(item.saldo_pendiente),
         fecha: (item.fecha_servicio || item.created_at || "").slice(0, 10),
@@ -329,6 +332,7 @@ export default function Reportes() {
   const totalNeto = ventasFiltradas.reduce((s, v) => s + v.totalNeto, 0);
   const utilidadTotal = ventasFiltradas.reduce((s, v) => s + v.utilidad, 0);
   const comisionTotal = ventasFiltradas.reduce((s, v) => s + v.comision, 0);
+  const utilidadNetaTotal = utilidadTotal - comisionTotal;
   const anticiposTotal = ventasFiltradas.reduce((s, v) => s + v.anticipo, 0);
   const saldoPendienteTotal = ventasFiltradas.reduce(
     (s, v) => s + v.saldoPendiente,
@@ -361,6 +365,7 @@ export default function Reportes() {
     totalVendido: ventas.reduce((s, v) => s + v.totalVendido, 0),
     utilidad: ventas.reduce((s, v) => s + v.utilidad, 0),
     comision: ventas.reduce((s, v) => s + v.comision, 0),
+    utilidadNeta: ventas.reduce((s, v) => s + v.utilidadNeta, 0),
   }));
 
   const reporteClientes = agrupar(ventasFiltradas, (v) => v.cliente, (cliente, ventas) => ({
@@ -465,8 +470,9 @@ export default function Reportes() {
         {[
           ["Total vendido", totalVendido, "bg-blue-950"],
           ["Total neto", totalNeto, "bg-slate-700"],
-          ["Utilidad", utilidadTotal, "bg-green-700"],
+          ["Utilidad bruta", utilidadTotal, "bg-green-700"],
           ["Comisión", comisionTotal, "bg-purple-700"],
+          ["Utilidad neta", utilidadNetaTotal, "bg-teal-700"],
           ["Anticipos", anticiposTotal, "bg-emerald-600"],
           ["Saldo pendiente", saldoPendienteTotal, "bg-red-600"],
         ].map(([titulo, valor, clase]) => (
@@ -548,8 +554,9 @@ export default function Reportes() {
                   estado: v.estado,
                   totalVendido: v.totalVendido,
                   totalNeto: v.totalNeto,
-                  utilidad: v.utilidad,
+                  utilidadBruta: v.utilidad,
                   comision: v.comision,
+                  utilidadNeta: v.utilidadNeta,
                   anticipo: v.anticipo,
                   saldoPendiente: v.saldoPendiente,
                   fecha: v.fecha,
@@ -565,7 +572,7 @@ export default function Reportes() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <Tabla titulo="Reporte por agente" columnas={["Agente", "Ventas", "Vendido", "Utilidad", "Comisión"]}>
+        <Tabla titulo="Reporte por agente" columnas={["Agente", "Ventas", "Vendido", "Utilidad bruta", "Comisión", "Utilidad neta"]}>
           {reporteAgentes.map((item) => (
             <tr key={item.agente}>
               <td className="p-2 border">{item.agente}</td>
@@ -573,6 +580,7 @@ export default function Reportes() {
               <td className="p-2 border">{formatoMoneda(item.totalVendido)}</td>
               <td className="p-2 border">{formatoMoneda(item.utilidad)}</td>
               <td className="p-2 border">{formatoMoneda(item.comision)}</td>
+              <td className="p-2 border">{formatoMoneda(item.utilidadNeta)}</td>
             </tr>
           ))}
         </Tabla>
@@ -638,7 +646,7 @@ export default function Reportes() {
 
       <div className="mb-6" />
 
-      <Tabla titulo="Reporte de ventas" columnas={["Tipo", "Folio", "Cliente", "Destino", "Servicio", "Total", "Utilidad", "Agente", "Estado"]}>
+      <Tabla titulo="Reporte de ventas" columnas={["Tipo", "Folio", "Cliente", "Destino", "Servicio", "Total", "Utilidad bruta", "Comisión", "Utilidad neta", "Agente", "Estado"]}>
         {ventasFiltradas.map((item) => (
           <tr key={`ventas-${item.tipo}-${item.id}`}>
             <td className="p-2 border">{item.tipo}</td>
@@ -648,6 +656,8 @@ export default function Reportes() {
             <td className="p-2 border">{item.servicio}</td>
             <td className="p-2 border">{formatoMoneda(item.totalVendido)}</td>
             <td className="p-2 border">{formatoMoneda(item.utilidad)}</td>
+            <td className="p-2 border">{formatoMoneda(item.comision)}</td>
+            <td className="p-2 border">{formatoMoneda(item.utilidadNeta)}</td>
             <td className="p-2 border">{item.agente}</td>
             <td className="p-2 border">{item.estado}</td>
           </tr>
