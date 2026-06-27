@@ -27,6 +27,7 @@ type Servicio = {
 
   tipo: string;
   detalle: string;
+  proveedor: string;
 
   tarifaReal: number;
   tarifaBase: number;
@@ -52,6 +53,7 @@ type Cotizacion = {
   fechaSolicitud: string;
   fechaSalida: string;
   fechaRegreso: string;
+  claveReservacion: string;
   descripcionViaje: string;
   numeroPersonas: string;
   tipoHabitacion: string;
@@ -81,6 +83,7 @@ export default function Cotizador() {
   const [fechaSolicitud, setFechaSolicitud] = useState("");
   const [fechaSalida, setFechaSalida] = useState("");
   const [fechaRegreso, setFechaRegreso] = useState("");
+  const [claveReservacion, setClaveReservacion] = useState("");
   const [descripcionViaje, setDescripcionViaje] = useState("");
   const [numeroPersonas, setNumeroPersonas] = useState("");
   const [tipoHabitacion, setTipoHabitacion] = useState("");
@@ -98,6 +101,7 @@ export default function Cotizador() {
 
   const [servicioTipo, setServicioTipo] = useState("");
   const [servicioDetalle, setServicioDetalle] = useState("");
+  const [servicioProveedor, setServicioProveedor] = useState("");
   const [servicioTarifaReal, setServicioTarifaReal] = useState("");
   const [servicioTarifaBase, setServicioTarifaBase] = useState("");
 
@@ -142,9 +146,14 @@ export default function Cotizador() {
   );
 
   const totalPublico =
-    subtotalTarifaBase + subtotalIVA + subtotalTUA + subtotalOtrosCargos;
+    subtotalTarifaReal +
+    subtotalTarifaBase +
+    subtotalIVA +
+    subtotalTUA +
+    subtotalOtrosCargos;
 
-  const utilidad = subtotalTarifaBase - subtotalTarifaReal;
+  const utilidad =
+    subtotalTarifaBase + subtotalIVA + subtotalTUA + subtotalOtrosCargos;
 
   const comision = utilidad * (Number(porcentajeComision ?? 0) / 100);
 
@@ -255,10 +264,11 @@ export default function Cotizador() {
                 otrosCargos,
 
                 total: Number(
-                  (tarifaBase + iva + tua + otrosCargos).toFixed(2),
+                  (tarifaReal + tarifaBase + iva + tua + otrosCargos).toFixed(2),
                 ),
 
                 moneda: servicio.moneda || item.moneda || "MXN",
+                proveedor: servicio.proveedor || "",
               };
             })
           : [
@@ -275,12 +285,14 @@ export default function Cotizador() {
 
                 total: Number(
                   (
+                    Number(item.tarifa_neta || 0) +
                     Number(item.tarifa_publica || 0) +
                     Number(item.iva_publica || item.iva_neta || 0)
                   ).toFixed(2),
                 ),
 
                 moneda: item.moneda || "MXN",
+                proveedor: "",
               },
             ];
       return {
@@ -300,6 +312,7 @@ export default function Cotizador() {
         fechaSolicitud: meta?.fechaSolicitud || item.fecha_solicitud || "",
         fechaSalida: meta?.fechaSalida || item.clientes?.fecha_salida || "",
         fechaRegreso: meta?.fechaRegreso || item.clientes?.fecha_llegada || "",
+        claveReservacion: meta?.claveReservacion || "",
         descripcionViaje: item.descripcion_viaje || "",
         numeroPersonas:
           item.numero_personas !== null && item.numero_personas !== undefined
@@ -355,6 +368,7 @@ export default function Cotizador() {
   const limpiarServicio = () => {
     setServicioTipo("");
     setServicioDetalle("");
+    setServicioProveedor("");
 
     setServicioTarifaReal("");
     setServicioTarifaBase("");
@@ -373,6 +387,7 @@ export default function Cotizador() {
     }
 
     const totalServicio =
+      Number(servicioTarifaReal || 0) +
       Number(servicioTarifaBase || 0) +
       Number(servicioIVA || 0) +
       Number(servicioTUA || 0) +
@@ -383,6 +398,7 @@ export default function Cotizador() {
 
       tipo: servicioTipo || "Manual",
       detalle: servicioDetalle,
+      proveedor: servicioProveedor,
 
       tarifaReal: Number(servicioTarifaReal || 0),
       tarifaBase: Number(servicioTarifaBase || 0),
@@ -413,6 +429,7 @@ export default function Cotizador() {
     setServicioEditId(servicio.id);
     setServicioTipo(servicio.tipo);
     setServicioDetalle(servicio.detalle);
+    setServicioProveedor(servicio.proveedor || "");
     setServicioTarifaReal(String(servicio.tarifaReal || ""));
     setServicioTarifaBase(String(servicio.tarifaBase || ""));
     setServicioIVA(String(servicio.iva || ""));
@@ -438,6 +455,7 @@ export default function Cotizador() {
     setFechaSolicitud("");
     setFechaSalida("");
     setFechaRegreso("");
+    setClaveReservacion("");
     setDescripcionViaje("");
     setNumeroPersonas("");
     setTipoHabitacion("");
@@ -488,6 +506,7 @@ export default function Cotizador() {
       fechaSolicitud,
       fechaSalida,
       fechaRegreso,
+      claveReservacion,
       agente,
       servicios,
       observaciones,
@@ -505,8 +524,7 @@ export default function Cotizador() {
       tipo_transportacion: tipoTransportacion,
       tarifa_neta: subtotalTarifaReal,
       iva_neta: subtotalIVA,
-      total_neta:
-        subtotalTarifaReal + subtotalIVA + subtotalTUA + subtotalOtrosCargos,
+      total_neta: subtotalTarifaReal,
       tarifa_publica: subtotalTarifaBase,
       iva_publica: subtotalIVA,
       total_publica: totalPublico,
@@ -561,6 +579,7 @@ export default function Cotizador() {
     setFechaSolicitud(cotizacion.fechaSolicitud || "");
     setFechaSalida(cotizacion.fechaSalida);
     setFechaRegreso(cotizacion.fechaRegreso);
+    setClaveReservacion(cotizacion.claveReservacion || "");
     setDescripcionViaje(cotizacion.descripcionViaje);
     setNumeroPersonas(cotizacion.numeroPersonas);
     setTipoHabitacion(cotizacion.tipoHabitacion);
@@ -629,6 +648,11 @@ export default function Cotizador() {
     const doc = new jsPDF();
     const fechaHoy = new Date().toLocaleDateString("es-MX");
 
+    const subtotalTarifaRealPDF = cotizacion.servicios.reduce(
+      (sum, servicio) => sum + Number(servicio.tarifaReal || 0),
+      0,
+    );
+
     const subtotalTarifaBasePDF = cotizacion.servicios.reduce(
       (sum, servicio) => sum + Number(servicio.tarifaBase || 0),
       0,
@@ -650,10 +674,20 @@ export default function Cotizador() {
     );
 
     const totalPublicoPDF =
+      subtotalTarifaRealPDF +
       subtotalTarifaBasePDF +
       subtotalIVAPDF +
       subtotalTUAPDF +
       subtotalOtrosCargosPDF;
+
+    const utilidadPDF =
+      subtotalTarifaBasePDF +
+      subtotalIVAPDF +
+      subtotalTUAPDF +
+      subtotalOtrosCargosPDF;
+
+    const comisionPDF =
+      utilidadPDF * (Number(cotizacion.porcentajeComision || 0) / 100);
 
     const saldoPendientePDF =
       totalPublicoPDF - Number(cotizacion.anticipo || 0);
@@ -671,15 +705,18 @@ export default function Cotizador() {
     doc.text("Destino: " + cotizacion.destino, 14, 82);
     doc.text("Salida: " + (cotizacion.fechaSalida || "N/A"), 14, 88);
     doc.text("Regreso: " + (cotizacion.fechaRegreso || "N/A"), 80, 88);
-    doc.text("Nombre de pax: " + (cotizacion.nombrePax || "N/A"), 14, 94);
-    doc.text("Agente: " + cotizacion.agente, 14, 100);
+    doc.text("Clave de reservación: " + (cotizacion.claveReservacion || "N/A"), 14, 94);
+    doc.text("Nombre de pax: " + (cotizacion.nombrePax || "N/A"), 14, 100);
+    doc.text("Agente: " + cotizacion.agente, 14, 106);
 
     autoTable(doc, {
-      startY: 113,
+      startY: 118,
       head: [
         [
           "Servicio",
           "Detalle",
+          "Proveedor",
+          "Tarifa real",
           "Tarifa base",
           "IVA",
           "TUA",
@@ -689,6 +726,7 @@ export default function Cotizador() {
       ],
       body: cotizacion.servicios.map((servicio) => {
         const totalServicio =
+          Number(servicio.tarifaReal || 0) +
           Number(servicio.tarifaBase || 0) +
           Number(servicio.iva || 0) +
           Number(servicio.tua || 0) +
@@ -700,6 +738,8 @@ export default function Cotizador() {
         return [
           servicio.tipo,
           servicio.detalle || "N/A",
+          servicio.proveedor || "N/A",
+          simboloMoneda + formatoMoneda(servicio.tarifaReal),
           simboloMoneda + formatoMoneda(servicio.tarifaBase),
           simboloMoneda + formatoMoneda(servicio.iva),
           simboloMoneda + formatoMoneda(servicio.tua),
@@ -712,7 +752,7 @@ export default function Cotizador() {
         fontSize: 8,
       },
       bodyStyles: {
-        fontSize: 8,
+        fontSize: 7,
       },
       alternateRowStyles: {
         fillColor: [245, 245, 245],
@@ -724,11 +764,14 @@ export default function Cotizador() {
       startY,
       head: [["Concepto", "Importe"]],
       body: [
+        ["Tarifa real", "$" + formatoMoneda(subtotalTarifaRealPDF)],
         ["Tarifa base", "$" + formatoMoneda(subtotalTarifaBasePDF)],
         ["IVA", "$" + formatoMoneda(subtotalIVAPDF)],
         ["TUA", "$" + formatoMoneda(subtotalTUAPDF)],
         ["Otros cargos", "$" + formatoMoneda(subtotalOtrosCargosPDF)],
         ["Total cliente", "$" + formatoMoneda(totalPublicoPDF)],
+        ["Utilidad", "$" + formatoMoneda(utilidadPDF)],
+        ["Comisión interna", "$" + formatoMoneda(comisionPDF)],
         ["Anticipo", "$" + formatoMoneda(cotizacion.anticipo)],
         ["Saldo pendiente", "$" + formatoMoneda(saldoPendientePDF)],
       ],
@@ -781,6 +824,7 @@ export default function Cotizador() {
         ["Número de habitaciones", cotizacion.numeroHabitaciones || "N/A"],
         ["Número de noches", cotizacion.numeroNoches || "N/A"],
         ["Tipo de transportación", cotizacion.tipoTransportacion || "N/A"],
+        ["Clave de reservación", cotizacion.claveReservacion || "N/A"],
       ],
       headStyles: { fillColor: [23, 37, 84] },
       alternateRowStyles: { fillColor: [245, 245, 245] },
@@ -930,6 +974,7 @@ export default function Cotizador() {
     const total = cotizacion.servicios.reduce(
       (sum, servicio) =>
         sum +
+        Number(servicio.tarifaReal || 0) +
         Number(servicio.tarifaBase || 0) +
         Number(servicio.iva || 0) +
         Number(servicio.tua || 0) +
@@ -942,6 +987,7 @@ export default function Cotizador() {
       "",
       `Te compartimos la cotización ${cotizacion.folio} de Viajes Far Away Premium Mobility.`,
       `Destino: ${cotizacion.destino || "Por confirmar"}`,
+      `Clave de reservación: ${cotizacion.claveReservacion || "Por confirmar"}`,
       `Total: ${simbolo}${formatoMoneda(total)}`,
       "",
       "Adjuntaremos el PDF con el desglose, condiciones y notas de viaje.",
@@ -989,7 +1035,7 @@ export default function Cotizador() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <input
             className="border p-2"
             placeholder="Destino"
@@ -1024,6 +1070,13 @@ export default function Cotizador() {
               onChange={(e) => setFechaRegreso(e.target.value)}
             />
           </label>
+
+          <input
+            className="border p-2"
+            placeholder="Clave de reservación"
+            value={claveReservacion}
+            onChange={(e) => setClaveReservacion(e.target.value)}
+          />
         </div>
 
         <input
@@ -1093,7 +1146,7 @@ export default function Cotizador() {
       <section className="border p-4 mb-4 rounded">
         <h2 className="font-bold mb-3">4. Servicios y costos</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
           <select
             className="border p-2"
             value={servicioTipo}
@@ -1105,10 +1158,13 @@ export default function Cotizador() {
             <option value="Vuelo">Servicio de vuelo</option>
             <option value="Crucero">Servicio de crucero</option>
             <option value="Tren">Servicio de tren</option>
+            <option value="Autobus">Servicio de autobús</option>
             <option value="Traslado">Servicio de traslado</option>
             <option value="Experiencia">Servicio de experiencia</option>
             <option value="Alquiler de coche">Alquiler de coche</option>
             <option value="Servicio terrestre">Servicio terrestre</option>
+            <option value="Convención o congreso">Servicio de convención o congreso</option>
+            <option value="Evento">Servicio de evento</option>
             <option value="Entradas">
               Entradas a parques, conciertos o museos
             </option>
@@ -1120,6 +1176,14 @@ export default function Cotizador() {
             value={servicioDetalle}
             onChange={(e) => setServicioDetalle(e.target.value)}
           />
+
+          <input
+            className="border p-2"
+            placeholder="Proveedor"
+            value={servicioProveedor}
+            onChange={(e) => setServicioProveedor(e.target.value)}
+          />
+
           <input
             className="border p-2"
             type="number"
@@ -1204,6 +1268,7 @@ export default function Cotizador() {
             <tr>
               <th className="p-2">Servicio</th>
               <th className="p-2">Detalle</th>
+              <th className="p-2">Proveedor</th>
               <th className="p-2">Tarifa real</th>
               <th className="p-2">Tarifa base</th>
               <th className="p-2">IVA</th>
@@ -1216,13 +1281,14 @@ export default function Cotizador() {
           <tbody>
             {servicios.length === 0 ? (
               <tr>
-                <td className="p-2 border text-center" colSpan={9}>
+                <td className="p-2 border text-center" colSpan={10}>
                   No hay servicios agregados
                 </td>
               </tr>
             ) : (
               servicios.map((servicio) => {
                 const totalServicio =
+                  Number(servicio.tarifaReal || 0) +
                   Number(servicio.tarifaBase || 0) +
                   Number(servicio.iva || 0) +
                   Number(servicio.tua || 0) +
@@ -1235,6 +1301,8 @@ export default function Cotizador() {
                     <td className="p-2 border">{servicio.tipo}</td>
 
                     <td className="p-2 border">{servicio.detalle || "N/A"}</td>
+
+                    <td className="p-2 border">{servicio.proveedor || "N/A"}</td>
 
                     <td className="p-2 border">
                       {simboloMoneda}
@@ -1443,7 +1511,7 @@ export default function Cotizador() {
               <th className="p-2">Cliente</th>
               <th className="p-2">Destino</th>
               <th className="p-2">Servicios</th>
-              <th className="p-2">Total público</th>
+              <th className="p-2">Total cliente</th>
               <th className="p-2">Estado</th>
               <th className="p-2">Agente</th>
               <th className="p-2">Acción</th>
@@ -1474,6 +1542,7 @@ export default function Cotizador() {
                       cotizacion.servicios.reduce(
                         (sum, servicio) =>
                           sum +
+                          Number(servicio.tarifaReal || 0) +
                           Number(servicio.tarifaBase || 0) +
                           Number(servicio.iva || 0) +
                           Number(servicio.tua || 0) +
